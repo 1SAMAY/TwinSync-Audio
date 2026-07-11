@@ -1,7 +1,7 @@
 param(
     [string]$Python = "",
     [string]$Npm = "npm.cmd",
-    [string]$Version = "0.1.0"
+    [string]$Version = "0.1.1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -167,13 +167,16 @@ Compress-Archive -Path (Join-Path $SourceStage "*") -DestinationPath $SourceZip 
 Set-Content -LiteralPath $ReleaseNotes -Encoding UTF8 -Value @"
 # TwinSync Audio v$Version
 
-This is the first public testing release of TwinSync Audio for Windows.
+This is the three-device audio-routing repair release of TwinSync Audio for Windows.
 
 ## Highlights
 
-- Route Windows audio to two supported output devices.
+- Route Windows audio to two explicitly selected output devices.
 - Adjust per-speaker synchronization delay.
 - Save and load local speaker profiles.
+- Prevent an unselected Windows default output from remaining audible as a third device during TwinSync playback.
+- Stop stale routing before speaker-pair and profile changes.
+- Report routing diagnostics for active output streams, workers, preview streams, and queue depth.
 - Use a smooth Tauri desktop interface.
 - Run locally without accounts, telemetry, cloud audio processing, or ads.
 - Install with a Windows setup wizard or use the portable zip.
@@ -189,6 +192,8 @@ Download TwinSyncAudio-Portable-v$Version.zip, extract it, and run TwinSyncAudio
 ## Important
 
 Synchronization accuracy varies by Bluetooth adapter, speaker model, Windows audio driver, codec, and internal speaker buffering.
+
+If Windows default output is not one of the selected TwinSync speakers, playback start is blocked. Set Windows default output to the selected primary or secondary speaker before party playback, or use a dedicated virtual routing source.
 
 ## Feedback
 
@@ -209,12 +214,17 @@ if ($LASTEXITCODE -ne 0 -or -not $Commit) {
     $Commit = "unknown"
     $global:LASTEXITCODE = 0
 }
-$StatusLines = (& git @GitArgs status --porcelain 2>$null)
+$UntrackedLines = (& git @GitArgs ls-files --others --exclude-standard 2>$null)
 if ($LASTEXITCODE -ne 0) {
     $Dirty = "unknown"
     $global:LASTEXITCODE = 0
 } else {
-    $Dirty = [bool]$StatusLines
+    & git @GitArgs diff --quiet 2>$null
+    $HasTrackedDiff = $LASTEXITCODE -ne 0
+    & git @GitArgs diff --cached --quiet 2>$null
+    $HasStagedDiff = $LASTEXITCODE -ne 0
+    $Dirty = $HasTrackedDiff -or $HasStagedDiff -or [bool]$UntrackedLines
+    $global:LASTEXITCODE = 0
 }
 $PythonVersion = (& $ResolvedPython --version)
 $NpmVersion = (& $Npm --version)
@@ -265,7 +275,8 @@ $($ChecksumReportRows -join "`n")
 Set-Content -LiteralPath $TestReport -Encoding UTF8 -Value @"
 # Test Report
 
-- Backend unit tests: passed, 11 tests.
+- Backend unit tests: passed, 17 tests.
+- Focused routing regressions: selected-pair validation, unselected Windows-default guard, profile restore validation, selection-change cleanup, custom-source startup, and Test A/B preview stream cleanup passed.
 - Frontend TypeScript/Vite production build: passed.
 - Backend PyInstaller executable build: passed.
 - Tauri NSIS installer build: passed.

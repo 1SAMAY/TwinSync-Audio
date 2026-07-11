@@ -61,6 +61,10 @@ async function backendRequest<T>(method: string, params: Record<string, unknown>
   return invoke<T>("backend_request", { method, params });
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const blankStatus: Status = {
   selection: { primary_id: null, secondary_id: null },
   delay: {
@@ -88,7 +92,7 @@ const blankStatus: Status = {
   events: []
 };
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.1.1";
 const TRUSTED_LINKS = new Set([
   "https://github.com/1SAMAY",
   "https://github.com/1SAMAY/TwinSync-Audio",
@@ -135,17 +139,17 @@ export default function App() {
     try {
       setIfChanged(await backendRequest<AudioDevice[]>("devices"), lastDevicesJson, setDevices);
     } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
+      errors.push(errorMessage(err));
     }
     try {
       setIfChanged(await backendRequest<Status>("status"), lastStatusJson, setStatus);
     } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
+      errors.push(errorMessage(err));
     }
     try {
       setIfChanged(await backendRequest<Profile[]>("profiles"), lastProfilesJson, setProfiles);
     } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
+      errors.push(errorMessage(err));
     }
     setError((current) => {
       const next = errors.join(" ");
@@ -198,8 +202,14 @@ export default function App() {
   }, []);
 
   const start = useCallback(async () => {
-    setStatus(await backendRequest<Status>("start"));
-  }, []);
+    try {
+      setStatus(await backendRequest<Status>("start"));
+      setError("");
+    } catch (err) {
+      setError(errorMessage(err));
+      await refresh();
+    }
+  }, [refresh]);
 
   const stop = useCallback(async () => {
     setStatus(await backendRequest<Status>("stop"));

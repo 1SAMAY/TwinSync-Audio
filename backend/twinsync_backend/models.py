@@ -122,6 +122,8 @@ class SpeakerProfile:
     delay: DelaySettings
     volume: VolumeSettings
     audio_mode: AudioMode
+    primary_display_name: str | None = None
+    secondary_display_name: str | None = None
     id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -129,6 +131,8 @@ class SpeakerProfile:
             "id": self.id,
             "name": self.name,
             "selection": asdict(self.selection),
+            "primary_display_name": self.primary_display_name,
+            "secondary_display_name": self.secondary_display_name,
             "delay": asdict(self.delay),
             "volume": asdict(self.volume),
             "audio_mode": asdict(self.audio_mode),
@@ -140,6 +144,8 @@ class SpeakerProfile:
             id=data.get("id"),
             name=str(data["name"]),
             selection=SpeakerSelection(**data["selection"]),
+            primary_display_name=data.get("primary_display_name"),
+            secondary_display_name=data.get("secondary_display_name"),
             delay=DelaySettings(**data["delay"]),
             volume=VolumeSettings(**data["volume"]),
             audio_mode=AudioMode(**data["audio_mode"]),
@@ -159,6 +165,13 @@ class SyncMetrics:
     cpu_usage_percent: float | None = None
     connection_health: str = "idle"
     last_error: str | None = None
+    selected_output_count: int = 0
+    active_output_stream_count: int = 0
+    active_playback_worker_count: int = 0
+    preview_stream_count: int = 0
+    routing_session_count: int = 0
+    queue_depths: dict[str, int] = field(default_factory=dict)
+    routing_warning: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -172,4 +185,3 @@ def clamp_delay_ms(value: float) -> float:
 
 def clamp_unit(value: float) -> float:
     return max(0.0, min(float(value), 1.0))
-

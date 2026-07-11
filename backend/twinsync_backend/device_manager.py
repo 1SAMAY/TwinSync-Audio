@@ -39,10 +39,13 @@ class SoundcardDeviceProvider:
             ) from exc
 
         devices: list[AudioDevice] = []
-        default_speaker_name = getattr(soundcard.default_speaker(), "name", "")
+        default_speaker = soundcard.default_speaker()
+        default_speaker_name = str(getattr(default_speaker, "name", ""))
+        default_speaker_id = str(getattr(default_speaker, "id", ""))
         for speaker in soundcard.all_speakers():
             name = str(getattr(speaker, "name", speaker))
             device_id = str(getattr(speaker, "id", name))
+            is_default = device_id == default_speaker_id if default_speaker_id else name == default_speaker_name
             devices.append(
                 AudioDevice(
                     id=device_id,
@@ -50,7 +53,7 @@ class SoundcardDeviceProvider:
                     is_output=True,
                     is_input=False,
                     connection_type=infer_connection_type(name),
-                    is_default=name == default_speaker_name,
+                    is_default=is_default,
                     channels=getattr(speaker, "channels", None),
                     # Windows does not expose Bluetooth codec, battery, and RF signal strength
                     # through this local audio API for every device. Leaving these as None keeps
@@ -95,9 +98,14 @@ class DeviceManager:
     def output_devices(self) -> list[AudioDevice]:
         return [device for device in self.list_devices() if device.is_output]
 
+    def default_output(self) -> AudioDevice | None:
+        for device in self.output_devices():
+            if device.is_default:
+                return device
+        return None
+
     def require_output(self, device_id: str) -> AudioDevice:
         for device in self.output_devices():
             if device.id == device_id:
                 return device
         raise ValueError(f"Output device is not available: {device_id}")
-

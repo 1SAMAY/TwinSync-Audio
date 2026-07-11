@@ -67,6 +67,7 @@ class AudioEngine:
         self._queues: list[queue.Queue[Any]] = []
         self._config: PlaybackConfig | None = None
         self._metrics = SyncMetrics()
+        self._session_counter = 0
 
     def start(self, config: PlaybackConfig) -> None:
         config.audio_mode.validate()
@@ -76,6 +77,7 @@ class AudioEngine:
             raise ValueError("Primary and secondary speakers must be different devices.")
         with self._lock:
             self.stop()
+            self._session_counter += 1
             self._config = config
             self._stop.clear()
             self._metrics = SyncMetrics(
@@ -84,6 +86,8 @@ class AudioEngine:
                 sample_rate=config.audio_mode.sample_rate,
                 bit_depth=config.audio_mode.bit_depth,
                 connection_health="starting",
+                selected_output_count=2,
+                routing_session_count=1,
             )
             self._capture_thread = threading.Thread(target=self._run, name="twinsync-capture", daemon=True)
             self._capture_thread.start()
@@ -98,6 +102,11 @@ class AudioEngine:
         self._queues = []
         self._metrics.playback_state = PlaybackState.STOPPED
         self._metrics.connection_health = "idle"
+        self._metrics.active_output_stream_count = 0
+        self._metrics.active_playback_worker_count = 0
+        self._metrics.preview_stream_count = 0
+        self._metrics.routing_session_count = 0
+        self._metrics.queue_depths = {}
 
     def set_delay(self, delay: DelaySettings) -> None:
         delay.clamp()
@@ -173,6 +182,17 @@ class AudioEngine:
                     args=(secondary, secondary_queue, secondary_delay, "secondary"),
                     daemon=True,
                 ))
+            if len(self._output_threads) > 2:
+                raise RuntimeError("Routing invariant failed: more than two TwinSync output workers were created.")
+            if not self._output_threads:
+                raise RuntimeError("No TwinSync output stream could be created for the selected speakers.")
+            self._metrics.active_output_stream_count = len(self._output_threads)
+            self._metrics.active_playback_worker_count = len(self._output_threads)
+            self._metrics.routing_warning = (
+                "Windows default output is one selected speaker, so TwinSync renders only the non-default selected speaker."
+                if len(self._output_threads) < 2
+                else None
+            )
             for thread in self._output_threads:
                 thread.start()
 
@@ -187,6 +207,11 @@ class AudioEngine:
                         self._enqueue(primary_queue, block.copy())
                     if secondary_queue is not None:
                         self._enqueue(secondary_queue, block.copy())
+                    self._metrics.queue_depths = {
+                        label: blocks.qsize()
+                        for label, blocks in (("primary", primary_queue), ("secondary", secondary_queue))
+                        if blocks is not None
+                    }
                     self._metrics.estimated_drift_ms = drift.observe(frames_per_chunk, time.perf_counter() - started)
         except Exception as exc:  # Audio callback errors must reach the UI instead of killing silently.
             LOGGER.exception("Audio engine failed")
@@ -277,8 +302,12 @@ class AudioEngine:
         envelope = np.minimum(envelope, envelope[::-1])
         tone = 0.18 * np.sin(2.0 * math.pi * frequency * t) * envelope
         stereo = np.column_stack([tone, tone]).astype(np.float32)
-        with speaker.player(samplerate=sample_rate, channels=2) as player:
-            player.play(stereo)
+        self._metrics.preview_stream_count += 1
+        try:
+            with speaker.player(samplerate=sample_rate, channels=2) as player:
+                player.play(stereo)
+        finally:
+            self._metrics.preview_stream_count = max(0, self._metrics.preview_stream_count - 1)
 
     def _speaker_by_id(self, soundcard: Any, device_id: str) -> Any:
         for speaker in soundcard.all_speakers():

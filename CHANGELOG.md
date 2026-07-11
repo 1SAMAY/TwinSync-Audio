@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] - 2026-07-11
+
+### Fixed
+
+- Prevented TwinSync from starting when the Windows default output is an unselected third device, which would leave the original Windows playback path audible outside TwinSync.
+- Enforced selected-device validation before playback and profile restore.
+- Stopped active playback before speaker-pair or profile changes to release stale output workers.
+- Added routing diagnostics for selected output count, active output streams, playback workers, preview streams, active routing sessions, and per-device queue depth.
+- Preserved explicit selected-device routing so connected but unselected devices are not opened by TwinSync.
+
 ## [0.1.0] - 2026-07-11
 
 ### Added

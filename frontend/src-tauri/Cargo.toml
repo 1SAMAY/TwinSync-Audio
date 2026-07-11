@@ -1,6 +1,6 @@
 [package]
 name = "twinsync-audio"
-version = "0.1.0"
+version = "0.1.1"
 description = "TwinSync Audio desktop shell"
 authors = ["TwinSync Audio"]
 license-file = "../../LICENSE"

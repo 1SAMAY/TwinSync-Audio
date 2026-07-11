@@ -9,7 +9,7 @@ from .calibration import CalibrationService
 from .database import TwinSyncDatabase, default_profile
 from .delay import compute_compensation
 from .device_manager import DeviceManager
-from .models import AudioMode, DelaySettings, SpeakerProfile, SpeakerSelection, VolumeSettings
+from .models import AudioDevice, AudioMode, DelaySettings, PlaybackState, SpeakerProfile, SpeakerSelection, VolumeSettings
 
 
 @dataclass
@@ -82,19 +82,21 @@ class TwinSyncService:
             self.devices.require_output(primary_id)
         if secondary_id:
             self.devices.require_output(secondary_id)
+        if self.audio.status().playback_state not in (PlaybackState.STOPPED, PlaybackState.ERROR):
+            self.audio.stop()
+            self.db.log_event("playback", "Playback stopped before speaker selection changed")
         self.state.selection = selection
         self._persist_state()
         self.db.log_event("device", "Speaker selection changed", asdict(selection))
         return self.status()
 
     def start_playback(self) -> dict[str, Any]:
-        self.state.selection.validate()
-        if not self.state.selection.primary_id or not self.state.selection.secondary_id:
-            raise ValueError("Select primary and secondary speakers before starting playback.")
+        primary, secondary = self._require_selected_pair()
+        self._guard_unselected_default_output({primary.id, secondary.id})
         config = PlaybackConfig(
             source_id=self.state.source_id,
-            primary_id=self.state.selection.primary_id,
-            secondary_id=self.state.selection.secondary_id,
+            primary_id=primary.id,
+            secondary_id=secondary.id,
             delay=self.state.delay,
             volume=self.state.volume,
             audio_mode=self.state.audio_mode,
@@ -180,9 +182,13 @@ class TwinSyncService:
         return result.to_dict()
 
     def save_profile(self, name: str) -> dict[str, Any]:
+        primary = self.devices.require_output(self.state.selection.primary_id) if self.state.selection.primary_id else None
+        secondary = self.devices.require_output(self.state.selection.secondary_id) if self.state.selection.secondary_id else None
         profile = SpeakerProfile(
             name=name.strip() or "Speaker Pair",
             selection=self.state.selection,
+            primary_display_name=primary.name if primary else None,
+            secondary_display_name=secondary.name if secondary else None,
             delay=self.state.delay,
             volume=self.state.volume,
             audio_mode=self.state.audio_mode,
@@ -194,6 +200,13 @@ class TwinSyncService:
     def load_profile(self, profile_id: int) -> dict[str, Any]:
         profile = self.db.get_profile(profile_id)
         profile.selection.validate()
+        if profile.selection.primary_id:
+            self.devices.require_output(profile.selection.primary_id)
+        if profile.selection.secondary_id:
+            self.devices.require_output(profile.selection.secondary_id)
+        if self.audio.status().playback_state not in (PlaybackState.STOPPED, PlaybackState.ERROR):
+            self.audio.stop()
+            self.db.log_event("playback", "Playback stopped before profile load")
         self.state = AppState(
             selection=profile.selection,
             delay=profile.delay,
@@ -250,3 +263,24 @@ class TwinSyncService:
                 "source_id": self.state.source_id,
             },
         )
+
+    def _require_selected_pair(self) -> tuple[AudioDevice, AudioDevice]:
+        self.state.selection.validate()
+        if not self.state.selection.primary_id or not self.state.selection.secondary_id:
+            raise ValueError("Select primary and secondary speakers before starting playback.")
+        primary = self.devices.require_output(self.state.selection.primary_id)
+        secondary = self.devices.require_output(self.state.selection.secondary_id)
+        if primary.id == secondary.id:
+            raise ValueError("Primary and secondary speakers must resolve to different output devices.")
+        return primary, secondary
+
+    def _guard_unselected_default_output(self, selected_ids: set[str]) -> None:
+        if self.state.source_id:
+            return
+        default_output = self.devices.default_output()
+        if default_output and default_output.id not in selected_ids:
+            raise ValueError(
+                "Windows default output is not one of the selected TwinSync speakers. "
+                f"Set Windows default output to Primary or Secondary before starting, or use a virtual routing source. "
+                f"Current default: {default_output.name}"
+            )

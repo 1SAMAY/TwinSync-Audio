@@ -29,9 +29,9 @@ The script:
 Release files are written to:
 
 ```text
-release\v0.1.0
+release\v0.1.1
 ```
 
 ## Notes
 
-The v0.1.0 executable is unsigned unless a real code-signing certificate is configured outside the repository.
+The v0.1.1 executable is unsigned unless a real code-signing certificate is configured outside the repository.

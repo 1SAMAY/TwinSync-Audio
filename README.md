@@ -132,22 +132,22 @@ Download the latest Windows installer from GitHub Releases:
 
 https://github.com/1SAMAY/TwinSync-Audio/releases
 
-For normal use, download `TwinSyncAudio-Setup-v0.1.0.exe`, run the installer, and launch **TwinSync Audio** from the Start Menu.
+For normal use, download `TwinSyncAudio-Setup-v0.1.1.exe`, run the installer, and launch **TwinSync Audio** from the Start Menu.
 
-The portable build is also available as `TwinSyncAudio-Portable-v0.1.0.zip`. Extract it and run `TwinSyncAudio.exe`.
+The portable build is also available as `TwinSyncAudio-Portable-v0.1.1.zip`. Extract it and run `TwinSyncAudio.exe`.
 
-## Release Package v0.1.0
+## Release Package v0.1.1
 
-GitHub release: `TwinSync Audio v0.1.0`
+GitHub release: `TwinSync Audio v0.1.1`
 
 Download package files:
 
-- `TwinSyncAudio-Setup-v0.1.0.exe` - recommended Windows installer for friends and testers.
-- `TwinSyncAudio-Portable-v0.1.0.zip` - portable build; extract and run `TwinSyncAudio.exe`.
-- `TwinSyncAudio-Source-v0.1.0.zip` - clean source archive without generated build files.
+- `TwinSyncAudio-Setup-v0.1.1.exe` - recommended Windows installer for friends and testers.
+- `TwinSyncAudio-Portable-v0.1.1.zip` - portable build; extract and run `TwinSyncAudio.exe`.
+- `TwinSyncAudio-Source-v0.1.1.zip` - clean source archive without generated build files.
 - `SHA256SUMS.txt` - checksums for verifying downloads.
 
-Main functions in v0.1.0:
+Main functions in v0.1.1:
 
 - Detect Windows playback devices.
 - Select primary and secondary speakers.
@@ -156,11 +156,13 @@ Main functions in v0.1.0:
 - Run guided calibration pulses.
 - Save and load speaker profiles locally.
 - View playback status, drift, buffer, and event diagnostics.
+- Prevent unselected Windows default output devices from creating an uncontrolled third audible path.
 
 Notes:
 
 - Users do not need Python, Node.js, npm, Rust, or Visual Studio Build Tools.
 - The installer can download Microsoft Edge WebView2 Runtime if it is missing.
+- If Windows default output is not one of the selected TwinSync speakers, start is blocked with a clear warning. Set Windows default to the selected primary or secondary speaker before party playback.
 - The executable is unsigned, so Windows SmartScreen may show an unknown publisher warning.
 - Real sync quality depends on Bluetooth adapter, speaker model, Windows driver, codec, and speaker buffering.
 
@@ -281,7 +283,7 @@ cd TwinSync-Audio
 .\installer\build_windows.ps1
 ```
 
-The script builds the Python backend sidecar with PyInstaller, runs the Tauri Windows bundle build, creates the portable zip, creates the source zip, and writes checksums plus release reports under `release\v0.1.0`.
+The script builds the Python backend sidecar with PyInstaller, runs the Tauri Windows bundle build, creates the portable zip, creates the source zip, and writes checksums plus release reports under `release\v0.1.1`.
 
 ## Local IPC
 
