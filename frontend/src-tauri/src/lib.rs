@@ -6,6 +6,12 @@ use std::{
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
     sync::Mutex,
 };
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+use tauri::{path::BaseDirectory, Manager};
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 struct BackendProcess {
     child: Child,
@@ -16,13 +22,14 @@ struct BackendProcess {
 
 struct BackendState {
     process: Mutex<Option<BackendProcess>>,
+    bundled_backend: Option<PathBuf>,
 }
 
 impl BackendState {
     fn request(&self, method: String, params: Value) -> Result<Value, String> {
         let mut guard = self.process.lock().map_err(|_| "Backend lock is poisoned.".to_string())?;
         if guard.is_none() {
-            *guard = Some(start_backend()?);
+            *guard = Some(start_backend(self.bundled_backend.as_deref())?);
         }
         let process = guard.as_mut().ok_or_else(|| "Backend process is not available.".to_string())?;
         process.next_id += 1;
@@ -55,24 +62,26 @@ fn backend_request(state: tauri::State<BackendState>, method: String, params: Va
     state.request(method, params)
 }
 
-fn start_backend() -> Result<BackendProcess, String> {
+fn start_backend(bundled_backend: Option<&Path>) -> Result<BackendProcess, String> {
     if let Ok(exe) = env::var("TWINSYNC_BACKEND_EXE") {
         return spawn_backend_exe(PathBuf::from(exe));
+    }
+    if let Some(path) = bundled_backend {
+        if path.exists() {
+            return spawn_backend_exe(path.to_path_buf());
+        }
     }
 
     let root = find_project_root().ok_or_else(|| "TwinSync project root was not found.".to_string())?;
     let backend_dir = root.join("backend");
     let python = python_command(&root);
-    let child = Command::new(python)
+    let mut command = Command::new(python);
+    command
         .arg("-m")
         .arg("twinsync_backend.ipc_server")
         .env("PYTHONPATH", backend_dir)
-        .current_dir(root)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|err| format!("Failed to start Python backend: {err}"))?;
+        .current_dir(root);
+    let child = spawn_hidden(command).map_err(|err| format!("Failed to start Python backend: {err}"))?;
     build_process(child)
 }
 
@@ -98,13 +107,16 @@ fn python_command(root: &Path) -> PathBuf {
 }
 
 fn spawn_backend_exe(path: PathBuf) -> Result<BackendProcess, String> {
-    let child = Command::new(path)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|err| format!("Failed to start bundled backend: {err}"))?;
+    let command = Command::new(path);
+    let child = spawn_hidden(command).map_err(|err| format!("Failed to start bundled backend: {err}"))?;
     build_process(child)
+}
+
+fn spawn_hidden(mut command: Command) -> std::io::Result<Child> {
+    command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW);
+    command.spawn()
 }
 
 fn build_process(mut child: Child) -> Result<BackendProcess, String> {
@@ -144,7 +156,18 @@ fn is_project_root(path: &Path) -> bool {
 
 pub fn run() {
     tauri::Builder::default()
-        .manage(BackendState { process: Mutex::new(None) })
+        .setup(|app| {
+            let bundled_backend = app
+                .path()
+                .resolve("backend/twinsync-backend.exe", BaseDirectory::Resource)
+                .ok()
+                .filter(|path| path.exists());
+            app.manage(BackendState {
+                process: Mutex::new(None),
+                bundled_backend,
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![backend_request])
         .run(tauri::generate_context!())
         .expect("failed to run TwinSync Audio");

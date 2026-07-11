@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useDisplayPerformance } from "./useDisplayPerformance";
 
 type AudioDevice = {
   id: string;
@@ -87,45 +88,97 @@ const blankStatus: Status = {
   events: []
 };
 
+const APP_VERSION = "0.1.0";
+const TRUSTED_LINKS = new Set([
+  "https://github.com/1SAMAY",
+  "https://github.com/1SAMAY/TwinSync-Audio",
+  "https://samay-dev-portfolio.vercel.app/",
+  "https://www.linkedin.com/in/samay-dudhrejiya",
+  "mailto:samay4932@gmail.com"
+]);
+
+function openTrustedLink(url: string) {
+  if (!TRUSTED_LINKS.has(url)) return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 export default function App() {
+  useDisplayPerformance();
   const [devices, setDevices] = useState<AudioDevice[]>([]);
   const [status, setStatus] = useState<Status>(blankStatus);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [error, setError] = useState<string>("");
   const [profileName, setProfileName] = useState("Default Pair");
+  const lastDevicesJson = useRef("");
+  const lastStatusJson = useRef("");
+  const lastProfilesJson = useRef("");
 
   const outputDevices = useMemo(() => devices.filter((device) => device.is_output), [devices]);
   const primaryName = outputDevices.find((device) => device.id === status.selection.primary_id)?.name ?? "Not selected";
   const secondaryName = outputDevices.find((device) => device.id === status.selection.secondary_id)?.name ?? "Not selected";
   const isPlaying = status.metrics.playback_state === "playing" || status.metrics.playback_state === "starting";
 
-  async function refresh() {
-    const errors: string[] = [];
-    try {
-      setDevices(await backendRequest<AudioDevice[]>("devices"));
-    } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
+  const setIfChanged = useCallback(<T,>(
+    value: T,
+    previousJson: React.MutableRefObject<string>,
+    setter: React.Dispatch<React.SetStateAction<T>>
+  ) => {
+    const nextJson = JSON.stringify(value);
+    if (nextJson !== previousJson.current) {
+      previousJson.current = nextJson;
+      setter(value);
     }
-    try {
-      setStatus(await backendRequest<Status>("status"));
-    } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
-    }
-    try {
-      setProfiles(await backendRequest<Profile[]>("profiles"));
-    } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
-    }
-    setError(errors.join(" "));
-  }
-
-  useEffect(() => {
-    refresh();
-    const timer = window.setInterval(refresh, 2500);
-    return () => window.clearInterval(timer);
   }, []);
 
-  async function selectSpeakers(primary_id: string | null, secondary_id: string | null) {
+  const refresh = useCallback(async () => {
+    const errors: string[] = [];
+    try {
+      setIfChanged(await backendRequest<AudioDevice[]>("devices"), lastDevicesJson, setDevices);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+    try {
+      setIfChanged(await backendRequest<Status>("status"), lastStatusJson, setStatus);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+    try {
+      setIfChanged(await backendRequest<Profile[]>("profiles"), lastProfilesJson, setProfiles);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+    setError((current) => {
+      const next = errors.join(" ");
+      return current === next ? current : next;
+    });
+  }, [setIfChanged]);
+
+  useEffect(() => {
+    let timer = 0;
+    const startPolling = () => {
+      window.clearInterval(timer);
+      if (document.visibilityState === "hidden") return;
+      timer = window.setInterval(refresh, 2500);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        window.clearInterval(timer);
+        return;
+      }
+      refresh();
+      startPolling();
+    };
+
+    refresh();
+    startPolling();
+    document.addEventListener("visibilitychange", onVisibilityChange, { passive: true });
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [refresh]);
+
+  const selectSpeakers = useCallback(async (primary_id: string | null, secondary_id: string | null) => {
     const nextPrimary = primary_id || null;
     const nextSecondary = secondary_id || null;
     if (nextPrimary && nextSecondary && nextPrimary === nextSecondary) {
@@ -134,44 +187,44 @@ export default function App() {
     }
     setStatus(await backendRequest<Status>("select_speakers", { primary_id: nextPrimary, secondary_id: nextSecondary }));
     await refresh();
-  }
+  }, [refresh]);
 
-  async function setDelay(which: "primary_manual_ms" | "secondary_manual_ms", value: number) {
+  const setDelay = useCallback(async (which: "primary_manual_ms" | "secondary_manual_ms", value: number) => {
     setStatus(await backendRequest<Status>("set_delay", { [which]: value }));
-  }
+  }, []);
 
-  async function setVolume(which: "master" | "primary" | "secondary", value: number) {
+  const setVolume = useCallback(async (which: "master" | "primary" | "secondary", value: number) => {
     setStatus(await backendRequest<Status>("set_volume", { [which]: value / 100 }));
-  }
+  }, []);
 
-  async function start() {
+  const start = useCallback(async () => {
     setStatus(await backendRequest<Status>("start"));
-  }
+  }, []);
 
-  async function stop() {
+  const stop = useCallback(async () => {
     setStatus(await backendRequest<Status>("stop"));
-  }
+  }, []);
 
-  async function testSound(device_id: string | null) {
+  const testSound = useCallback(async (device_id: string | null) => {
     if (!device_id) return;
     setStatus(await backendRequest<Status>("test_sound", { device_id }));
-  }
+  }, []);
 
-  async function calibrate() {
+  const calibrate = useCallback(async () => {
     const result = await backendRequest<{ message: string }>("calibrate");
     setError(result.message);
     await refresh();
-  }
+  }, [refresh]);
 
-  async function saveProfile() {
+  const saveProfile = useCallback(async () => {
     await backendRequest("save_profile", { name: profileName });
     await refresh();
-  }
+  }, [profileName, refresh]);
 
-  async function loadProfile(profile_id: number) {
+  const loadProfile = useCallback(async (profile_id: number) => {
     setStatus(await backendRequest<Status>("load_profile", { profile_id }));
     await refresh();
-  }
+  }, [refresh]);
 
   return (
     <main className="app-shell">
@@ -267,16 +320,7 @@ export default function App() {
               </article>
             )}
             {outputDevices.map((device) => (
-              <article key={device.id} className="device-row">
-                <div>
-                  <strong>{device.name}</strong>
-                  <span>{device.connection_type}</span>
-                </div>
-                <div>
-                  <span>{device.codec ?? "Codec unavailable"}</span>
-                  <span>{device.battery_percent === null ? "Battery unavailable" : `${device.battery_percent}%`}</span>
-                </div>
-              </article>
+              <DeviceRow key={device.id} device={device} />
             ))}
           </div>
         </div>
@@ -306,9 +350,7 @@ export default function App() {
           </div>
           <div className="profile-list">
             {profiles.map((profile) => (
-              <button key={profile.id} onClick={() => loadProfile(profile.id)}>
-                {profile.name}
-              </button>
+              <ProfileButton key={profile.id} profile={profile} onLoad={loadProfile} />
             ))}
           </div>
         </div>
@@ -317,29 +359,51 @@ export default function App() {
           <h2>Event Log</h2>
           <div className="event-list">
             {status.events.map((event) => (
-              <article key={event.id}>
-                <span>{event.category}</span>
-                <strong>{event.message}</strong>
-                <small>{event.created_at}</small>
-              </article>
+              <EventRow key={event.id} event={event} />
             ))}
           </div>
+        </div>
+
+        <div className="panel about-panel">
+          <h2>About TwinSync Audio</h2>
+          <div className="about-copy">
+            <strong>TwinSync Audio</strong>
+            <span>Version {APP_VERSION}</span>
+            <p>TwinSync Audio allows Windows users to route and synchronize audio across compatible speaker devices.</p>
+            <span>Developed by SAMAY DUDHREJIYA</span>
+          </div>
+          <div className="link-grid">
+            <button onClick={() => openTrustedLink("https://github.com/1SAMAY")}>GitHub</button>
+            <button onClick={() => openTrustedLink("https://github.com/1SAMAY/TwinSync-Audio")}>Repository</button>
+            <button onClick={() => openTrustedLink("https://samay-dev-portfolio.vercel.app/")}>Portfolio</button>
+            <button onClick={() => openTrustedLink("https://www.linkedin.com/in/samay-dudhrejiya")}>LinkedIn</button>
+            <button onClick={() => openTrustedLink("mailto:samay4932@gmail.com")}>Contact Email</button>
+          </div>
+          <p className="copyright">Copyright (c) 2026 SAMAY DUDHREJIYA</p>
         </div>
       </section>
     </main>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+const Metric = memo(function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
   );
-}
+});
 
-function DelayControl({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+const DelayControl = memo(function DelayControl({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
   return (
     <label className="range-control">
       <span>{label}</span>
@@ -347,9 +411,17 @@ function DelayControl({ label, value, onChange }: { label: string; value: number
       <input min={0} max={500} step={1} type="number" value={Math.round(value)} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
-}
+});
 
-function VolumeControl({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+const VolumeControl = memo(function VolumeControl({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
   return (
     <label className="range-control">
       <span>{label}</span>
@@ -357,4 +429,40 @@ function VolumeControl({ label, value, onChange }: { label: string; value: numbe
       <input min={0} max={100} step={1} type="number" value={Math.round(value)} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
-}
+});
+
+const DeviceRow = memo(function DeviceRow({ device }: { device: AudioDevice }) {
+  return (
+    <article className="device-row">
+      <div>
+        <strong>{device.name}</strong>
+        <span>{device.connection_type}</span>
+      </div>
+      <div>
+        <span>{device.codec ?? "Codec unavailable"}</span>
+        <span>{device.battery_percent === null ? "Battery unavailable" : `${device.battery_percent}%`}</span>
+      </div>
+    </article>
+  );
+});
+
+const ProfileButton = memo(function ProfileButton({
+  profile,
+  onLoad
+}: {
+  profile: Profile;
+  onLoad: (profileId: number) => void;
+}) {
+  const handleClick = useCallback(() => onLoad(profile.id), [onLoad, profile.id]);
+  return <button onClick={handleClick}>{profile.name}</button>;
+});
+
+const EventRow = memo(function EventRow({ event }: { event: EventItem }) {
+  return (
+    <article>
+      <span>{event.category}</span>
+      <strong>{event.message}</strong>
+      <small>{event.created_at}</small>
+    </article>
+  );
+});

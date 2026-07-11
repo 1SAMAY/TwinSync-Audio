@@ -102,6 +102,7 @@ The app includes:
 - Profile save/load controls
 - Event log
 - Live diagnostics panel
+- About Developer section
 
 ## Project Structure
 
@@ -125,7 +126,52 @@ TwinSync/
   assets/github/            # README graphics
 ```
 
-## Requirements
+## Download And Installation
+
+Download the latest Windows installer from GitHub Releases:
+
+https://github.com/1SAMAY/TwinSync-Audio/releases
+
+For normal use, download `TwinSyncAudio-Setup-v0.1.0.exe`, run the installer, and launch **TwinSync Audio** from the Start Menu.
+
+The portable build is also available as `TwinSyncAudio-Portable-v0.1.0.zip`. Extract it and run `TwinSyncAudio.exe`.
+
+## Release Package v0.1.0
+
+GitHub release: `TwinSync Audio v0.1.0`
+
+Download package files:
+
+- `TwinSyncAudio-Setup-v0.1.0.exe` - recommended Windows installer for friends and testers.
+- `TwinSyncAudio-Portable-v0.1.0.zip` - portable build; extract and run `TwinSyncAudio.exe`.
+- `TwinSyncAudio-Source-v0.1.0.zip` - clean source archive without generated build files.
+- `SHA256SUMS.txt` - checksums for verifying downloads.
+
+Main functions in v0.1.0:
+
+- Detect Windows playback devices.
+- Select primary and secondary speakers.
+- Route local Windows audio through the TwinSync backend.
+- Adjust manual synchronization delay.
+- Run guided calibration pulses.
+- Save and load speaker profiles locally.
+- View playback status, drift, buffer, and event diagnostics.
+
+Notes:
+
+- Users do not need Python, Node.js, npm, Rust, or Visual Studio Build Tools.
+- The installer can download Microsoft Edge WebView2 Runtime if it is missing.
+- The executable is unsigned, so Windows SmartScreen may show an unknown publisher warning.
+- Real sync quality depends on Bluetooth adapter, speaker model, Windows driver, codec, and speaker buffering.
+
+## User Requirements
+
+- Windows 10 or Windows 11, 64-bit
+- Two Windows playback devices
+- Bluetooth, USB, HDMI, or analog speaker hardware supported by Windows
+- Microsoft Edge WebView2 Runtime, installed automatically by the setup wizard when needed
+
+## Development Requirements
 
 Install these on Windows:
 
@@ -151,10 +197,9 @@ After installing Rust or Build Tools, close PowerShell and open a new one.
 ## Run In Development
 
 ```powershell
-cd C:\Users\Samay\Documents\Codex\2026-07-10\project-specification-twinsync-audio-professional-windows\outputs\TwinSync
+cd TwinSync-Audio
 
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -e .[windows]
 
 cd frontend
@@ -224,7 +269,7 @@ Fields such as Bluetooth codec, signal strength, and battery are shown only when
 ## Run Tests
 
 ```powershell
-cd C:\Users\Samay\Documents\Codex\2026-07-10\project-specification-twinsync-audio-professional-windows\outputs\TwinSync
+cd TwinSync-Audio
 $env:PYTHONPATH = "backend"
 .\.venv\Scripts\python.exe -m unittest discover -s tests
 ```
@@ -232,11 +277,11 @@ $env:PYTHONPATH = "backend"
 ## Build Windows Installer
 
 ```powershell
-cd C:\Users\Samay\Documents\Codex\2026-07-10\project-specification-twinsync-audio-professional-windows\outputs\TwinSync
+cd TwinSync-Audio
 .\installer\build_windows.ps1
 ```
 
-The script builds the Python backend sidecar with PyInstaller and then runs the Tauri Windows bundle build.
+The script builds the Python backend sidecar with PyInstaller, runs the Tauri Windows bundle build, creates the portable zip, creates the source zip, and writes checksums plus release reports under `release\v0.1.0`.
 
 ## Local IPC
 
@@ -270,14 +315,19 @@ Recent local checks:
 ```text
 Backend tests: 11 passed
 Frontend build: passed
-Python compile: passed
-npm audit: 0 vulnerabilities
+PyInstaller backend build: passed
 ```
 
 ## Documentation
 
 - [User Guide](docs/USER_GUIDE.md)
 - [Developer Guide](docs/DEVELOPER_GUIDE.md)
+- [Development](docs/DEVELOPMENT.md)
+- [Windows Build](docs/BUILD_WINDOWS.md)
+- [Release Process](docs/RELEASE_PROCESS.md)
+- [Privacy](PRIVACY.md)
+- [Support](SUPPORT.md)
+- [Security](SECURITY.md)
 - [Windows build script](installer/build_windows.ps1)
 
 ## Repository Notes
@@ -295,5 +345,4 @@ Generated caches and local runtime files are intentionally ignored:
 
 ## License
 
-No open-source license has been added yet. Until a license file is added, all rights are reserved by the repository owner.
-
+No owner-selected open-source license has been added yet. The current `LICENSE` file is an all-rights-reserved notice. Do not redistribute or reuse the source until the repository owner chooses an explicit open-source license.
