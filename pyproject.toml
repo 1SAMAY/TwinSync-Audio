@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "twinsync-audio"
+version = "0.1.0"
+description = "Local Windows dual-speaker audio synchronization backend for TwinSync Audio."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+windows = [
+  "numpy>=1.26",
+  "soundcard>=0.4.3",
+  "pyinstaller>=6.0"
+]
+
+[project.scripts]
+twinsync-backend = "twinsync_backend.ipc_server:main"
+
+[tool.setuptools]
+package-dir = {"" = "backend"}
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+

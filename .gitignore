@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+*.sqlite3
+*.db
+data/
+node_modules/
+dist/
+target/
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
+backend/*.egg-info/
+backend-dist/
+logs/*.log
+work/

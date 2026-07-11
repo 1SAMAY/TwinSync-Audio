@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title desc">
+  <title id="title">TwinSync Audio</title>
+  <desc id="desc">Dark hero graphic showing Windows audio routed through TwinSync to two speakers.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#080a0f"/>
+      <stop offset="0.5" stop-color="#111827"/>
+      <stop offset="1" stop-color="#071511"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" x2="1">
+      <stop offset="0" stop-color="#48e6b6"/>
+      <stop offset="1" stop-color="#f3c04d"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1280" height="420" rx="28" fill="url(#bg)"/>
+  <circle cx="1020" cy="80" r="180" fill="#ec538b" opacity="0.10"/>
+  <circle cx="170" cy="330" r="180" fill="#48e6b6" opacity="0.12"/>
+  <g transform="translate(70 64)">
+    <text x="0" y="54" fill="#48e6b6" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">LOCAL WINDOWS AUDIO SYNC</text>
+    <text x="0" y="130" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="800">TwinSync Audio</text>
+    <text x="0" y="178" fill="#b8c4d6" font-family="Segoe UI, Arial, sans-serif" font-size="25">Play one Windows audio stream through two speakers with practical delay compensation.</text>
+    <g transform="translate(0 230)">
+      <rect width="170" height="46" rx="10" fill="#48e6b6" opacity="0.18" stroke="#48e6b6"/>
+      <text x="20" y="30" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">100% Local</text>
+      <rect x="190" width="178" height="46" rx="10" fill="#f3c04d" opacity="0.16" stroke="#f3c04d"/>
+      <text x="210" y="30" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">SQLite Profiles</text>
+      <rect x="388" width="178" height="46" rx="10" fill="#ec538b" opacity="0.14" stroke="#ec538b"/>
+      <text x="408" y="30" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Tauri Desktop</text>
+    </g>
+  </g>
+  <g transform="translate(770 88)" filter="url(#glow)">
+    <rect x="0" y="72" width="150" height="100" rx="18" fill="#111827" stroke="#48e6b6" stroke-width="2"/>
+    <text x="34" y="129" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="800">TwinSync</text>
+    <path d="M-120 122 C-70 84 -40 84 0 122" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M150 122 C210 72 260 72 320 122" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M150 122 C218 176 262 176 330 122" fill="none" stroke="#48e6b6" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+    <g transform="translate(-220 64)">
+      <rect width="92" height="116" rx="18" fill="#0b1118" stroke="#b8c4d6"/>
+      <circle cx="46" cy="42" r="20" fill="#48e6b6" opacity="0.28" stroke="#48e6b6"/>
+      <circle cx="46" cy="82" r="14" fill="#f3c04d" opacity="0.25" stroke="#f3c04d"/>
+      <text x="10" y="146" fill="#b8c4d6" font-family="Segoe UI, Arial, sans-serif" font-size="15">Windows</text>
+    </g>
+    <g transform="translate(355 18)">
+      <rect width="96" height="170" rx="20" fill="#0b1118" stroke="#48e6b6"/>
+      <circle cx="48" cy="58" r="26" fill="#48e6b6" opacity="0.24" stroke="#48e6b6"/>
+      <circle cx="48" cy="116" r="20" fill="#ec538b" opacity="0.20" stroke="#ec538b"/>
+      <text x="6" y="205" fill="#b8c4d6" font-family="Segoe UI, Arial, sans-serif" font-size="15">Speaker A</text>
+    </g>
+    <g transform="translate(505 18)">
+      <rect width="96" height="170" rx="20" fill="#0b1118" stroke="#f3c04d"/>
+      <circle cx="48" cy="58" r="26" fill="#f3c04d" opacity="0.24" stroke="#f3c04d"/>
+      <circle cx="48" cy="116" r="20" fill="#48e6b6" opacity="0.20" stroke="#48e6b6"/>
+      <text x="6" y="205" fill="#b8c4d6" font-family="Segoe UI, Arial, sans-serif" font-size="15">Speaker B</text>
+    </g>
+  </g>
+</svg>
+

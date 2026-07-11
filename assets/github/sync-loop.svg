@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="500" viewBox="0 0 1280 500" role="img" aria-labelledby="title desc">
+  <title id="title">Synchronization loop</title>
+  <desc id="desc">Loop diagram for TwinSync calibration and delay correction.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#48e6b6"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="500" rx="24" fill="#080a0f"/>
+  <text x="56" y="58" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">Sync Loop</text>
+  <text x="56" y="90" fill="#9fb0c8" font-family="Segoe UI, Arial, sans-serif" font-size="17">Measure by listening, compensate with delay, save the pair profile.</text>
+  <g font-family="Segoe UI, Arial, sans-serif" font-weight="700">
+    <g transform="translate(100 180)">
+      <circle r="66" fill="#101827" stroke="#48e6b6" stroke-width="3"/>
+      <text x="-38" y="-8" fill="#f7fbff" font-size="18">Select</text>
+      <text x="-45" y="18" fill="#9fb0c8" font-size="14">speakers</text>
+    </g>
+    <g transform="translate(340 180)">
+      <circle r="66" fill="#101827" stroke="#f3c04d" stroke-width="3"/>
+      <text x="-48" y="-8" fill="#f7fbff" font-size="18">Calibrate</text>
+      <text x="-42" y="18" fill="#9fb0c8" font-size="14">pulses</text>
+    </g>
+    <g transform="translate(580 180)">
+      <circle r="66" fill="#101827" stroke="#48e6b6" stroke-width="3"/>
+      <text x="-42" y="-8" fill="#f7fbff" font-size="18">Adjust</text>
+      <text x="-35" y="18" fill="#9fb0c8" font-size="14">delay</text>
+    </g>
+    <g transform="translate(820 180)">
+      <circle r="66" fill="#101827" stroke="#ec538b" stroke-width="3"/>
+      <text x="-34" y="-8" fill="#f7fbff" font-size="18">Save</text>
+      <text x="-40" y="18" fill="#9fb0c8" font-size="14">profile</text>
+    </g>
+    <g transform="translate(1060 180)">
+      <circle r="66" fill="#101827" stroke="#f3c04d" stroke-width="3"/>
+      <text x="-34" y="-8" fill="#f7fbff" font-size="18">Play</text>
+      <text x="-38" y="18" fill="#9fb0c8" font-size="14">synced</text>
+    </g>
+  </g>
+  <g stroke="#48e6b6" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M166 180 H270"/>
+    <path d="M406 180 H510"/>
+    <path d="M646 180 H750"/>
+    <path d="M886 180 H990"/>
+    <path d="M1060 246 C1034 380 154 380 112 252"/>
+  </g>
+  <g transform="translate(220 330)" font-family="Segoe UI, Arial, sans-serif">
+    <rect width="840" height="78" rx="14" fill="#101827" stroke="#26364a"/>
+    <text x="26" y="32" fill="#f7fbff" font-size="18" font-weight="800">Delay math</text>
+    <text x="26" y="58" fill="#9fb0c8" font-size="16">If Speaker A is 170 ms and Speaker B is 245 ms, TwinSync delays A by 75 ms.</text>
+  </g>
+</svg>
+

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="520" viewBox="0 0 1280 520" role="img" aria-labelledby="title desc">
+  <title id="title">TwinSync UI map</title>
+  <desc id="desc">Map of TwinSync Audio user interface areas.</desc>
+  <rect width="1280" height="520" rx="24" fill="#080a0f"/>
+  <text x="56" y="58" fill="#f7fbff" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">Desktop Function Map</text>
+  <g transform="translate(56 110)" font-family="Segoe UI, Arial, sans-serif">
+    <rect width="1168" height="340" rx="18" fill="#101827" stroke="#26364a" stroke-width="2"/>
+    <rect x="30" y="34" width="500" height="130" rx="12" fill="#151f2e" stroke="#48e6b6"/>
+    <text x="56" y="75" fill="#48e6b6" font-size="20" font-weight="800">Status</text>
+    <text x="56" y="110" fill="#dbe6f3" font-size="16">Primary speaker, Secondary speaker, effective delay, Start/Stop</text>
+    <rect x="570" y="34" width="560" height="130" rx="12" fill="#151f2e" stroke="#f3c04d"/>
+    <text x="596" y="75" fill="#f3c04d" font-size="20" font-weight="800">Diagnostics</text>
+    <text x="596" y="110" fill="#dbe6f3" font-size="16">Drift, buffer, sample rate, bit depth, dropped frames, health</text>
+    <rect x="30" y="194" width="350" height="112" rx="12" fill="#151f2e" stroke="#48e6b6"/>
+    <text x="56" y="235" fill="#48e6b6" font-size="20" font-weight="800">Device Manager</text>
+    <text x="56" y="270" fill="#dbe6f3" font-size="16">Select, swap, test, refresh outputs</text>
+    <rect x="410" y="194" width="350" height="112" rx="12" fill="#151f2e" stroke="#ec538b"/>
+    <text x="436" y="235" fill="#ec538b" font-size="20" font-weight="800">Sync Controls</text>
+    <text x="436" y="270" fill="#dbe6f3" font-size="16">Delay sliders and volume controls</text>
+    <rect x="790" y="194" width="340" height="112" rx="12" fill="#151f2e" stroke="#f3c04d"/>
+    <text x="816" y="235" fill="#f3c04d" font-size="20" font-weight="800">Profiles and Log</text>
+    <text x="816" y="270" fill="#dbe6f3" font-size="16">Save pairs, load pairs, inspect events</text>
+  </g>
+</svg>
