@@ -347,4 +347,4 @@ Generated caches and local runtime files are intentionally ignored:
 
 ## License
 
-No owner-selected open-source license has been added yet. The current `LICENSE` file is an all-rights-reserved notice. Do not redistribute or reuse the source until the repository owner chooses an explicit open-source license.
+The creator is still cooking. Until an official open-source license drops, this repo is under lock and key. No lifting, shifting, or drifting the code until the green light is explicitly given.
