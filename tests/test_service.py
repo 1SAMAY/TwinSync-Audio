@@ -1,6 +1,9 @@
 import tempfile
 import unittest
+import json
+import os
 from pathlib import Path
+from unittest.mock import patch
 
 from twinsync_backend.device_manager import DeviceManager
 from twinsync_backend.models import AudioDevice, ConnectionType, PlaybackState, SyncMetrics
@@ -53,6 +56,15 @@ class FakeAudioEngine:
 
     def play_calibration_pulses(self, primary_id: str, secondary_id: str, sample_rate: int) -> None:
         self.calibration_calls.append((primary_id, secondary_id, sample_rate))
+
+    def measure_acoustic_latency(self, primary_id: str, secondary_id: str, measurement_input_id: str, sample_rate: int):
+        return {
+            "primary_arrivals_ms": [150.0, 150.4, 149.8],
+            "secondary_arrivals_ms": [177.0, 177.5, 176.9],
+            "correlations": [0.94, 0.93, 0.95],
+            "background_noise_rms": 0.004,
+            "microphone_level_rms": 0.08,
+        }
 
 
 class ServiceTests(unittest.TestCase):
@@ -178,6 +190,45 @@ class ServiceTests(unittest.TestCase):
             service.state.source_id = "virtual-loopback"
             service.start_playback()
             self.assertEqual(len(audio.start_calls), 1)
+
+    def test_microphone_calibration_applies_only_confident_result(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            audio = FakeAudioEngine()
+            service = TwinSyncService(
+                db_path=Path(temp) / "twinsync.sqlite3",
+                device_manager=DeviceManager(FakeProvider()),
+                audio_engine=audio,
+            )
+            service.select_speakers("a", "b")
+            result = service.calibrate("measurement-mic")
+            self.assertTrue(result["applied"])
+            self.assertGreater(result["confidence"], 0.9)
+            self.assertAlmostEqual(service.state.delay.secondary_estimated_ms, 27.1, places=1)
+            self.assertEqual(result["background_noise_rms"], 0.004)
+
+    def test_settings_round_trip(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            service = TwinSyncService(db_path=Path(temp) / "twinsync.sqlite3")
+            settings = service.set_settings(automatic_reconnect=False, developer_mode=True)
+            self.assertFalse(settings["automatic_reconnect"])
+            self.assertTrue(settings["developer_mode"])
+
+    def test_diagnostics_export_omits_device_ids_and_error_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            audio = FakeAudioEngine()
+            audio.metrics.last_error = "private-device-id failed"
+            service = TwinSyncService(
+                db_path=Path(temp) / "twinsync.sqlite3",
+                device_manager=DeviceManager(FakeProvider()),
+                audio_engine=audio,
+            )
+            service.select_speakers("a", "b")
+            with patch.dict(os.environ, {"TWINSYNC_DATA_DIR": temp}):
+                path = Path(service.export_diagnostics()["path"])
+            payload = path.read_text(encoding="utf-8")
+            self.assertNotIn("private-device-id", payload)
+            self.assertNotIn('"primary_id"', payload)
+            self.assertTrue(json.loads(payload)["metrics"]["last_error_present"])
 
 
 if __name__ == "__main__":

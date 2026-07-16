@@ -1,17 +1,67 @@
 use serde_json::{json, Value};
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::{
-    env,
+    env, fs,
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
     sync::Mutex,
 };
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use tauri::{path::BaseDirectory, Manager};
 
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
+#[cfg(windows)]
+const FIXED_WEBVIEW_RUNTIME: &str = "Microsoft.WebView2.FixedVersionRuntime.150.0.4078.65.x64";
+
+#[cfg(windows)]
+fn prepare_fixed_webview_runtime() -> Result<(), String> {
+    let executable =
+        env::current_exe().map_err(|error| format!("Cannot locate TwinSyncAudio.exe: {error}"))?;
+    let runtime = executable
+        .parent()
+        .ok_or_else(|| "Cannot locate the TwinSync application folder.".to_string())?
+        .join(FIXED_WEBVIEW_RUNTIME);
+    if !runtime.join("msedgewebview2.exe").exists() {
+        return Err(format!(
+            "Bundled WebView2 runtime is missing from {}.",
+            runtime.display()
+        ));
+    }
+
+    let marker = runtime.join(".twinsync-webview-acl-v1");
+    if marker.exists() {
+        return Ok(());
+    }
+
+    let mut command = Command::new("icacls.exe");
+    command
+        .arg(&runtime)
+        .arg("/grant")
+        .arg("*S-1-15-2-2:(OI)(CI)(RX)")
+        .arg("*S-1-15-2-1:(OI)(CI)(RX)")
+        .arg("/T")
+        .arg("/C")
+        .arg("/Q")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .creation_flags(CREATE_NO_WINDOW);
+    let status = command
+        .status()
+        .map_err(|error| format!("Cannot prepare bundled WebView2 permissions: {error}"))?;
+    if !status.success() {
+        return Err(format!(
+            "Cannot prepare bundled WebView2 permissions (exit {status})."
+        ));
+    }
+    fs::write(
+        marker,
+        b"TwinSync Audio fixed WebView2 permissions prepared\n",
+    )
+    .map_err(|error| format!("Cannot save bundled WebView2 permission state: {error}"))?;
+    Ok(())
+}
 
 struct BackendProcess {
     child: Child,
@@ -27,11 +77,16 @@ struct BackendState {
 
 impl BackendState {
     fn request(&self, method: String, params: Value) -> Result<Value, String> {
-        let mut guard = self.process.lock().map_err(|_| "Backend lock is poisoned.".to_string())?;
+        let mut guard = self
+            .process
+            .lock()
+            .map_err(|_| "Backend lock is poisoned.".to_string())?;
         if guard.is_none() {
             *guard = Some(start_backend(self.bundled_backend.as_deref())?);
         }
-        let process = guard.as_mut().ok_or_else(|| "Backend process is not available.".to_string())?;
+        let process = guard
+            .as_mut()
+            .ok_or_else(|| "Backend process is not available.".to_string())?;
         process.next_id += 1;
         let request_id = process.next_id;
         let request = json!({ "id": request_id, "method": method, "params": params });
@@ -39,7 +94,10 @@ impl BackendState {
         process.stdin.flush().map_err(|err| err.to_string())?;
 
         let mut line = String::new();
-        process.stdout.read_line(&mut line).map_err(|err| err.to_string())?;
+        process
+            .stdout
+            .read_line(&mut line)
+            .map_err(|err| err.to_string())?;
         if line.trim().is_empty() {
             return Err("Backend returned an empty response.".to_string());
         }
@@ -58,7 +116,11 @@ impl BackendState {
 }
 
 #[tauri::command]
-fn backend_request(state: tauri::State<BackendState>, method: String, params: Value) -> Result<Value, String> {
+fn backend_request(
+    state: tauri::State<BackendState>,
+    method: String,
+    params: Value,
+) -> Result<Value, String> {
     state.request(method, params)
 }
 
@@ -72,7 +134,8 @@ fn start_backend(bundled_backend: Option<&Path>) -> Result<BackendProcess, Strin
         }
     }
 
-    let root = find_project_root().ok_or_else(|| "TwinSync project root was not found.".to_string())?;
+    let root =
+        find_project_root().ok_or_else(|| "TwinSync project root was not found.".to_string())?;
     let backend_dir = root.join("backend");
     let python = python_command(&root);
     let mut command = Command::new(python);
@@ -81,7 +144,8 @@ fn start_backend(bundled_backend: Option<&Path>) -> Result<BackendProcess, Strin
         .arg("twinsync_backend.ipc_server")
         .env("PYTHONPATH", backend_dir)
         .current_dir(root);
-    let child = spawn_hidden(command).map_err(|err| format!("Failed to start Python backend: {err}"))?;
+    let child =
+        spawn_hidden(command).map_err(|err| format!("Failed to start Python backend: {err}"))?;
     build_process(child)
 }
 
@@ -107,21 +171,42 @@ fn python_command(root: &Path) -> PathBuf {
 }
 
 fn spawn_backend_exe(path: PathBuf) -> Result<BackendProcess, String> {
-    let command = Command::new(path);
-    let child = spawn_hidden(command).map_err(|err| format!("Failed to start bundled backend: {err}"))?;
+    let mut command = Command::new(path);
+    if let Ok(executable) = env::current_exe() {
+        if let Some(root) = executable
+            .parent()
+            .filter(|root| root.join("portable.flag").exists())
+        {
+            command
+                .env("TWINSYNC_DATA_DIR", root.join("data"))
+                .env("TWINSYNC_LOG_DIR", root.join("data").join("logs"))
+                .current_dir(root);
+        }
+    }
+    let child =
+        spawn_hidden(command).map_err(|err| format!("Failed to start bundled backend: {err}"))?;
     build_process(child)
 }
 
 fn spawn_hidden(mut command: Command) -> std::io::Result<Child> {
-    command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
     #[cfg(windows)]
     command.creation_flags(CREATE_NO_WINDOW);
     command.spawn()
 }
 
 fn build_process(mut child: Child) -> Result<BackendProcess, String> {
-    let stdin = child.stdin.take().ok_or_else(|| "Backend stdin was not opened.".to_string())?;
-    let stdout = child.stdout.take().ok_or_else(|| "Backend stdout was not opened.".to_string())?;
+    let stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| "Backend stdin was not opened.".to_string())?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Backend stdout was not opened.".to_string())?;
     Ok(BackendProcess {
         child,
         stdin,
@@ -154,14 +239,26 @@ fn is_project_root(path: &Path) -> bool {
     path.join("backend").join("twinsync_backend").exists() && path.join("frontend").exists()
 }
 
-pub fn run() {
+pub fn run() -> Result<(), String> {
+    #[cfg(windows)]
+    prepare_fixed_webview_runtime()?;
+
     tauri::Builder::default()
         .setup(|app| {
             let bundled_backend = app
                 .path()
                 .resolve("backend/twinsync-backend.exe", BaseDirectory::Resource)
                 .ok()
-                .filter(|path| path.exists());
+                .filter(|path| path.exists())
+                .or_else(|| {
+                    env::current_exe()
+                        .ok()?
+                        .parent()?
+                        .join("backend")
+                        .join("twinsync-backend.exe")
+                        .canonicalize()
+                        .ok()
+                });
             app.manage(BackendState {
                 process: Mutex::new(None),
                 bundled_backend,
@@ -170,7 +267,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![backend_request])
         .run(tauri::generate_context!())
-        .expect("failed to run TwinSync Audio");
+        .map_err(|error| error.to_string())
 }
 
 impl Drop for BackendProcess {

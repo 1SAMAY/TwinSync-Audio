@@ -7,13 +7,15 @@ from .models import DelaySettings, clamp_delay_ms
 
 def compute_compensation(delay: DelaySettings) -> tuple[float, float]:
     """Return effective software delays for primary and secondary speakers."""
-    delay.clamp()
-    primary_total = delay.primary_estimated_ms + delay.primary_manual_ms
-    secondary_total = delay.secondary_estimated_ms + delay.secondary_manual_ms
-    target = max(primary_total, secondary_total)
-    primary_auto = max(0.0, target - primary_total)
-    secondary_auto = max(0.0, target - secondary_total)
+    primary_auto, secondary_auto = automatic_compensation(delay)
     return delay.primary_manual_ms + primary_auto, delay.secondary_manual_ms + secondary_auto
+
+
+def automatic_compensation(delay: DelaySettings) -> tuple[float, float]:
+    """Delay only the lower-latency endpoint; manual trims remain independent."""
+    delay.clamp()
+    target = max(delay.primary_estimated_ms, delay.secondary_estimated_ms)
+    return target - delay.primary_estimated_ms, target - delay.secondary_estimated_ms
 
 
 def chunk_frames(sample_rate: int, buffer_ms: float) -> int:

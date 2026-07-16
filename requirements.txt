@@ -1,4 +1,4 @@
-numpy>=1.26
-soundcard>=0.4.3
-pyinstaller>=6.0
+numpy==2.5.1
+soundcard==0.4.6
+pyinstaller==6.21.0
 

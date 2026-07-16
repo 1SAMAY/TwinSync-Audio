@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any
 
 MAX_MANUAL_DELAY_MS = 500
+MAX_HARDWARE_LATENCY_MS = 2000
 SUPPORTED_SAMPLE_RATES = (44100, 48000, 96000)
 SUPPORTED_BIT_DEPTHS = (16, 24)
 
@@ -28,6 +29,7 @@ class PlaybackState(str, Enum):
     STOPPED = "stopped"
     STARTING = "starting"
     PLAYING = "playing"
+    RECONNECTING = "reconnecting"
     ERROR = "error"
 
 
@@ -79,6 +81,8 @@ class DelaySettings:
     def clamp(self) -> None:
         self.primary_manual_ms = clamp_delay_ms(self.primary_manual_ms)
         self.secondary_manual_ms = clamp_delay_ms(self.secondary_manual_ms)
+        self.primary_estimated_ms = clamp_hardware_latency_ms(self.primary_estimated_ms)
+        self.secondary_estimated_ms = clamp_hardware_latency_ms(self.secondary_estimated_ms)
 
 
 @dataclass
@@ -124,6 +128,7 @@ class SpeakerProfile:
     audio_mode: AudioMode
     primary_display_name: str | None = None
     secondary_display_name: str | None = None
+    source_id: str | None = None
     id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -133,6 +138,7 @@ class SpeakerProfile:
             "selection": asdict(self.selection),
             "primary_display_name": self.primary_display_name,
             "secondary_display_name": self.secondary_display_name,
+            "source_id": self.source_id,
             "delay": asdict(self.delay),
             "volume": asdict(self.volume),
             "audio_mode": asdict(self.audio_mode),
@@ -146,6 +152,7 @@ class SpeakerProfile:
             selection=SpeakerSelection(**data["selection"]),
             primary_display_name=data.get("primary_display_name"),
             secondary_display_name=data.get("secondary_display_name"),
+            source_id=data.get("source_id"),
             delay=DelaySettings(**data["delay"]),
             volume=VolumeSettings(**data["volume"]),
             audio_mode=AudioMode(**data["audio_mode"]),
@@ -171,6 +178,23 @@ class SyncMetrics:
     preview_stream_count: int = 0
     routing_session_count: int = 0
     queue_depths: dict[str, int] = field(default_factory=dict)
+    queue_latency_ms: dict[str, float] = field(default_factory=dict)
+    endpoint_clock_frames: dict[str, int] = field(default_factory=dict)
+    endpoint_clock_position_ms: dict[str, float] = field(default_factory=dict)
+    relative_clock_error_ms: float = 0.0
+    drift_correction_ppm: dict[str, float] = field(default_factory=dict)
+    capture_latency_ms: float = 0.0
+    render_latency_ms: dict[str, float] = field(default_factory=dict)
+    automatic_compensation_primary_ms: float = 0.0
+    automatic_compensation_secondary_ms: float = 0.0
+    acoustic_offset_ms: float | None = None
+    calibration_confidence: float | None = None
+    buffer_underruns: int = 0
+    buffer_overruns: int = 0
+    reconnect_attempts: int = 0
+    reconnect_state: str = "idle"
+    routing_mode: str = "idle"
+    uncontrolled_output_name: str | None = None
     routing_warning: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -181,6 +205,10 @@ class SyncMetrics:
 
 def clamp_delay_ms(value: float) -> float:
     return max(0.0, min(float(value), float(MAX_MANUAL_DELAY_MS)))
+
+
+def clamp_hardware_latency_ms(value: float) -> float:
+    return max(0.0, min(float(value), float(MAX_HARDWARE_LATENCY_MS)))
 
 
 def clamp_unit(value: float) -> float:
