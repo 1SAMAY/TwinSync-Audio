@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This notice summarizes the main third-party components used by TwinSync Audio v0.1.0. A full release audit should be repeated before publishing a public binary.
+This notice summarizes the main third-party components used by TwinSync Audio v0.2.0. A full release audit should be repeated before publishing a public binary.
 
 | Component | Version | License |
 | --- | --- | --- |
@@ -16,5 +16,8 @@ This notice summarizes the main third-party components used by TwinSync Audio v0
 | altgraph | 0.17.5 | MIT |
 | pefile | 2024.8.26 | MIT |
 | pywin32-ctypes | 0.2.3 | BSD-3-Clause |
+| Microsoft Edge WebView2 Fixed Version Runtime (x64) | 150.0.4078.65 | Microsoft Software License Terms |
 
 See the package lock files and bundled dependency metadata for complete dependency trees.
+
+The WebView2 runtime is acquired directly from Microsoft and redistributed unmodified as part of TwinSync Audio. Its package includes Microsoft's license and third-party notices. Microsoft Defender SmartScreen may collect and send information as described in the [Microsoft Privacy Statement](https://aka.ms/privacy) and [Microsoft Edge Privacy Whitepaper](https://learn.microsoft.com/en-us/microsoft-edge/privacy-whitepaper#smartscreen).

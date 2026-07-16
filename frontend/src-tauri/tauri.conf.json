@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "TwinSync Audio",
-  "version": "0.1.1",
+  "mainBinaryName": "TwinSyncAudio",
+  "version": "0.2.0",
   "identifier": "io.github.1samay.twinsync-audio",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -15,14 +16,14 @@
         "title": "TwinSync Audio",
         "width": 1280,
         "height": 820,
-        "minWidth": 920,
-        "minHeight": 640,
+        "minWidth": 640,
+        "minHeight": 520,
         "resizable": true,
         "fullscreen": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
@@ -38,14 +39,16 @@
     "longDescription": "TwinSync Audio routes Windows audio through two selected speakers with local latency compensation.",
     "windows": {
       "webviewInstallMode": {
-        "type": "downloadBootstrapper",
-        "silent": true
+        "type": "fixedRuntime",
+        "path": "./Microsoft.WebView2.FixedVersionRuntime.150.0.4078.65.x64/"
       },
       "nsis": {
         "installerIcon": "icons/icon.ico",
         "uninstallerIcon": "icons/icon.ico",
         "installMode": "currentUser",
-        "startMenuFolder": "TwinSync Audio"
+        "startMenuFolder": "TwinSync Audio",
+        "languages": ["English"],
+        "installerHooks": "windows/installer-hooks.nsh"
       }
     }
   }

@@ -4,16 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "twinsync-audio"
-version = "0.1.1"
+version = "0.2.0"
 description = "Local Windows dual-speaker audio synchronization backend for TwinSync Audio."
 requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
 windows = [
-  "numpy>=1.26",
-  "soundcard>=0.4.3",
-  "pyinstaller>=6.0"
+  "numpy==2.5.1",
+  "soundcard==0.4.6",
+  "pyinstaller==6.21.0"
 ]
 
 [project.scripts]

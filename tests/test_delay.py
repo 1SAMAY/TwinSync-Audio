@@ -17,6 +17,13 @@ class DelayTests(unittest.TestCase):
         self.assertEqual(delay.primary_manual_ms, 0)
         self.assertEqual(delay.secondary_manual_ms, 500)
 
+    def test_manual_trim_never_delays_the_other_speaker(self) -> None:
+        primary, secondary = compute_compensation(DelaySettings(primary_manual_ms=37))
+        self.assertEqual((primary, secondary), (37, 0))
+
+        primary, secondary = compute_compensation(DelaySettings(secondary_manual_ms=42))
+        self.assertEqual((primary, secondary), (0, 42))
+
     def test_chunk_frames(self) -> None:
         self.assertEqual(chunk_frames(48000, 10), 480)
         self.assertEqual(chunk_frames(44100, 60), 2646)

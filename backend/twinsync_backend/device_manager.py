@@ -98,6 +98,9 @@ class DeviceManager:
     def output_devices(self) -> list[AudioDevice]:
         return [device for device in self.list_devices() if device.is_output]
 
+    def input_devices(self) -> list[AudioDevice]:
+        return [device for device in self.list_devices() if device.is_input]
+
     def default_output(self) -> AudioDevice | None:
         for device in self.output_devices():
             if device.is_default:
@@ -109,3 +112,9 @@ class DeviceManager:
             if device.id == device_id:
                 return device
         raise ValueError(f"Output device is not available: {device_id}")
+
+    def require_input(self, device_id: str) -> AudioDevice:
+        for device in self.input_devices():
+            if device.id == device_id:
+                return device
+        raise ValueError(f"Input or loopback source is not available: {device_id}")

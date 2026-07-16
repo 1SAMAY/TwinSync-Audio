@@ -16,6 +16,7 @@ dist/
 target/
 frontend/src-tauri/target/
 frontend/src-tauri/gen/
+frontend/src-tauri/Microsoft.WebView2.FixedVersionRuntime.*/
 backend/*.egg-info/
 backend-dist*/
 logs/*.log
