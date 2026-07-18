@@ -374,6 +374,19 @@ h1 em { color: transparent; font-style: normal; -webkit-text-stroke: 1px rgba(25
 .event-list span, .event-list small { color: var(--muted); font-size: 0.68rem; }
 .event-list strong { min-width: 0; overflow: hidden; font-size: 0.76rem; text-overflow: ellipsis; white-space: nowrap; }
 .link-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 24px; }
+.link-grid button {
+  display: grid;
+  gap: 5px;
+  min-height: 72px;
+  border-color: rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+.link-grid button:hover { border-color: rgba(85, 240, 207, 0.42); background: linear-gradient(135deg, rgba(85, 240, 207, 0.16), rgba(167, 139, 250, 0.09)); }
+.link-grid strong { font-size: 0.9rem; }
+.link-grid small { overflow: hidden; color: var(--muted); font-size: 0.65rem; text-overflow: ellipsis; white-space: nowrap; }
 footer { padding: 30px 0; color: var(--muted); font-size: 0.72rem; text-align: center; }
 
 .playback-hud {
