@@ -124,6 +124,27 @@ fn backend_request(
     state.request(method, params)
 }
 
+#[tauri::command]
+fn open_external(url: String) -> Result<(), String> {
+    const TRUSTED_LINKS: [&str; 3] = [
+        "https://github.com/1SAMAY",
+        "https://github.com/1SAMAY/TwinSync-Audio",
+        "mailto:samay4932@gmail.com",
+    ];
+    if !TRUSTED_LINKS.contains(&url.as_str()) {
+        return Err("Blocked untrusted external link.".to_string());
+    }
+
+    let mut command = Command::new("explorer.exe");
+    command.arg(&url);
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW);
+    command
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| format!("Cannot open external link: {error}"))
+}
+
 fn start_backend(bundled_backend: Option<&Path>) -> Result<BackendProcess, String> {
     if let Ok(exe) = env::var("TWINSYNC_BACKEND_EXE") {
         return spawn_backend_exe(PathBuf::from(exe));
@@ -265,7 +286,7 @@ pub fn run() -> Result<(), String> {
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![backend_request])
+        .invoke_handler(tauri::generate_handler![backend_request, open_external])
         .run(tauri::generate_context!())
         .map_err(|error| error.to_string())
 }

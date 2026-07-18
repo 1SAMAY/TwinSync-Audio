@@ -159,7 +159,7 @@ const TRUSTED_LINKS = new Set([
 ]);
 
 function openTrustedLink(url: string) {
-  if (TRUSTED_LINKS.has(url)) window.open(url, "_blank", "noopener,noreferrer");
+  if (TRUSTED_LINKS.has(url)) void invoke("open_external", { url });
 }
 
 function initialQuality(): QualityMode {
@@ -575,9 +575,9 @@ export default function App() {
           <h2>Local by design.</h2>
           <p>No account, telemetry, cloud audio, ads, or silent dependency downloads.</p>
           <div className="link-grid">
-            <button onClick={() => openTrustedLink("https://github.com/1SAMAY/TwinSync-Audio")}>Repository</button>
-            <button onClick={() => openTrustedLink("https://github.com/1SAMAY")}>Developer</button>
-            <button onClick={() => openTrustedLink("mailto:samay4932@gmail.com")}>Contact</button>
+            <button onClick={() => openTrustedLink("https://github.com/1SAMAY/TwinSync-Audio")}><strong>Repository</strong><small>1SAMAY/TwinSync-Audio</small></button>
+            <button onClick={() => openTrustedLink("https://github.com/1SAMAY")}><strong>Developer</strong><small>SAMAY DUDHREJIYA</small></button>
+            <button onClick={() => openTrustedLink("mailto:samay4932@gmail.com")}><strong>Contact</strong><small>samay4932@gmail.com</small></button>
           </div>
         </div>
       </section>
