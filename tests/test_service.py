@@ -109,6 +109,20 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(reloaded.status()["selection"]["primary_id"], "a")
             self.assertIsNone(reloaded.status()["selection"]["secondary_id"])
 
+    def test_stale_saved_output_does_not_block_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            provider = FakeProvider(("a", "b"))
+            service = TwinSyncService(
+                db_path=Path(temp) / "twinsync.sqlite3",
+                device_manager=DeviceManager(provider),
+            )
+            service.select_speakers("a", "b")
+
+            provider.device_ids = ("a", "c")
+            status = service.select_speakers("c", "b")
+
+            self.assertEqual(status["selection"], {"primary_id": "c", "secondary_id": None})
+
     def test_calibration_plays_both_selected_speakers(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             audio = FakeAudioEngine()
