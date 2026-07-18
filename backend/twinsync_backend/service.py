@@ -96,12 +96,20 @@ class TwinSyncService:
         return [device.to_dict() for device in self.devices.list_devices()]
 
     def select_speakers(self, primary_id: str | None = None, secondary_id: str | None = None) -> dict[str, Any]:
+        available_outputs = {device.id for device in self.devices.output_devices()}
+        current = self.state.selection
+        if primary_id and primary_id not in available_outputs:
+            if primary_id == current.primary_id:
+                primary_id = None
+            else:
+                raise ValueError(f"Output device is not available: {primary_id}")
+        if secondary_id and secondary_id not in available_outputs:
+            if secondary_id == current.secondary_id:
+                secondary_id = None
+            else:
+                raise ValueError(f"Output device is not available: {secondary_id}")
         selection = SpeakerSelection(primary_id=primary_id, secondary_id=secondary_id)
         selection.validate()
-        if primary_id:
-            self.devices.require_output(primary_id)
-        if secondary_id:
-            self.devices.require_output(secondary_id)
         if self.audio.status().playback_state not in (PlaybackState.STOPPED, PlaybackState.ERROR):
             self.audio.stop()
             self.db.log_event("playback", "Playback stopped before speaker selection changed")
